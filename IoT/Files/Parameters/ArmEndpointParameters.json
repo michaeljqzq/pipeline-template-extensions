@@ -1,0 +1,78 @@
+{
+  "groups": [{
+    "id": "azure",
+    "name": "Azure",
+    "properties": {
+      "context": "service"
+    }
+  }],
+  "inputs": [{
+      "id": "subscriptionId",
+      "type": "string",
+      "description": "Id of subscription where IoT Hub will be created.",
+      "Name": "Subscription",
+      "inputMode": "AzureSubscription",
+      "groupId": "azure",
+      "isRequired": true,
+      "properties": {
+        "attributes": "primary;"
+      }
+    },
+    {
+      "id": "resourceGroup",
+      "type": "string",
+      "description": "Name of resource group which should the provisioned resources.",
+      "Name": "New resource group",
+      "inputMode": "TextBox",
+      "groupId": "azure",
+      "isRequired": true,
+      "defaultValue": "devops-edge-rg",
+      "properties": {
+        "attributes": "primary;"
+      },
+      "dynamicValidations": [{
+        "dataSourceId": "checkResourceGroupAvailability",
+        "errorMessage": "Resource group with this name already exists"
+      }]
+    },
+    {
+      "id": "location",
+      "type": "string",
+      "description": "Location of the resource group.",
+      "name": "Location",
+      "inputMode": "Combo",
+      "groupId": "azure",
+      "isRequired": true,
+      "dataSourceId": "resourceGroupLocations",
+      "defaultValue": "South Central US"
+    },
+    {
+      "id": "azureAuth",
+      "type": "authorization",
+      "description": "Authorization for Azure ARM endpoints.",
+      "inputMode": "None",
+      "properties": {
+        "scope": "/subscriptions/{{{inputs.subscriptionId}}}/resourceGroups/{{{inputs.resourceGroup}}}",
+        "location": "{{{inputs.location}}}"
+      }
+    }
+  ],
+  "dataSources": [
+    {
+      "id": "resourceGroupLocations",
+      "endpointUrlStem": "/subscriptions/{{{inputs.subscriptionId}}}/providers/microsoft.resources?api-version=2014-04-01-preview",
+      "resultSelector": "$.resourceTypes[?(@.resourceType === 'subscriptions/resourceGroups')].locations"
+    },
+    {
+      "id": "resourceGroupList",
+      "endpointUrlStem": "/subscriptions/{{{inputs.subscriptionId}}}/resourcegroups?api-version=2018-02-01",
+      "resultSelector": "$..name"
+    },
+    {
+      "id": "checkResourceGroupAvailability",
+      "endpointUrlStem": "subscriptions/{{{inputs.subscriptionId}}}/resourceGroups//{{{inputs.resourceGroup}}}?api-version=2014-04-01-preview",
+      "httpMethod": "GET",
+      "resultTemplate":"false"
+    }
+  ]
+}

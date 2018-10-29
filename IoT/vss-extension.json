@@ -1,0 +1,1180 @@
+{
+  "manifestVersion": 1.0,
+  "extensionId": "vss-continuous-delivery-pipeline-templates-iot",
+  "name": "DevOps for IoT Edge",
+  "publisher": "ms",
+  "version": "0.1.1",
+  "description": "DevOps for IoT Edge",
+  "categories": [
+    "Integrate"
+  ],
+  "galleryFlags": [
+        "System",
+        "BuiltIn",
+        "MultiVersion"
+    ],
+    "targets": [
+        {
+            "id": "Microsoft.VisualStudio.Services"
+        }
+    ],
+    "files": [
+        {
+            "path": "Files",
+            "addressable": true
+        }
+    ],
+    "eventCallbacks": {
+        "versionCheck": {
+            "uri": "{{DeploymentUrl \"0000003B-0000-8888-8000-000000000000\"}}_apis/public/extensions/vdisc"
+        }
+    },
+  "contributions": [{
+      "id": "dotnet-newdevice",
+      "type": "ms.vss-continuous-delivery.pipeline-template-type",
+      "targets": [
+        "ms.vss-continuous-delivery.pipeline-templates"
+      ],
+      "properties": {
+        "description": "i18n:Template for configuring CI/CD pipeline for Azure IoT Edge App using .NET Core",
+        "attributes": {
+          "hideKey": "IoTEdgePipelineTemplates",
+          "codeRepositoryType": "Sample",
+          "runtimeId": "ms.vss-continuous-delivery-pipeline-templates.runtime-type-dotnet",
+          "frameworkId": "ms.vss-continuous-delivery-pipeline-templates.framework-type-iot-edge",
+          "serviceId": "ms.vss-continuous-delivery-pipeline-templates.service-type-linux-vm-edge-device"
+        },
+        "parameters": {
+          "imports": [
+            "Files/Parameters/ArmEndpointParameters.json",
+            "Files/Parameters/ContainerRegistryParameters.json",
+            "Files/Parameters/IoTHubParameters.json",
+            "Files/Parameters/VMParameters.json"
+          ]
+        },
+        "configuration": {
+          "assets": [
+            {
+              "id": "ARMEndpoint",
+              "type": "endpoint:AzureRM",
+              "inputs": {
+                "subscriptionId": "{{inputs.subscriptionId}}",
+                "authorization": "{{inputs.azureAuth}}"
+              }
+            }
+          ],
+          "source": {
+            "repository": {
+              "id": "https://github.com/VSChina/azure-iot-edge-sample-dotnet",
+              "defaultBranch": "master"
+            }
+          },
+          "buildDefinition": {
+            "queue": "hostedlinux",
+            "templateFile": "Files/BuildDefinitionTemplates/buildIoTEdge.json",
+            "variables": {
+              "DEVOPS_IOTEDGE_REGISTRY_URL": {
+                "value": "{{{inputs.containerRegistryName}}}.azurecr.io"
+              }
+            },
+            "phaseInputs": [{
+              "taskInputs": [
+                {
+                  "__TaskId__": "94a74903-f93f-4075-884f-dc11f34058b4",
+                  "ConnectedServiceName": "{{{assets.ARMEndpoint}}}",
+                  "resourceGroupName": "{{{inputs.resourceGroup}}}",
+                  "location": "{{{inputs.containerRegistryLocation}}}",
+                  "csmFileLink": "https://raw.githubusercontent.com/michaeljqzq/devops-iot-sample/7805ddfa886712eeb29fb3102de35f334a2ed95c/arm-acr.json",
+                  "overrideParameters": "-registryName {{{inputs.containerRegistryName}}} -registrySku \"{{{inputs.containerRegistrySKU}}}\" -registryLocation \"{{{inputs.containerRegistryLocation}}}\""
+                },
+                {
+                  "__TaskId__": "80f3f6a0-82a6-4a22-ba7a-e5b8c541b9b8",
+                  "azureSubscriptionEndpoint": "{{{assets.ARMEndpoint}}}",
+                  "azureContainerRegistry": "{\"loginServer\":\"{{{inputs.containerRegistryName}}}.azurecr.io\", \"id\" : \"/subscriptions/{{{inputs.subscriptionId}}}/resourceGroups/{{{inputs.resourceGroup}}}/providers/Microsoft.ContainerRegistry/registries/{{{inputs.containerRegistryName}}}\"}"
+                },
+                {
+                  "__TaskId__": "2ff763a7-ce83-4e1f-bc89-0ae63477cebe"
+                }
+              ]
+            }]
+          },
+          "releaseDefinition": {
+            "environments": [{
+              "name": "dev",
+              "deployedResourceIds": [
+                "/subscriptions/{{inputs.subscriptionId}}/resourceGroups/{{inputs.resourceGroup}}/providers/Microsoft.Compute/virtualMachines/{{inputs.vmName}}",
+                "/subscriptions/{{{inputs.subscriptionId}}}/resourceGroups/{{{inputs.resourceGroup}}}/providers/Microsoft.Devices/IotHubs/{{{inputs.iotHubName}}}"
+              ],
+              "variables": {
+                "vmPassword": {
+                  "value": "{{{inputs.vmPassword}}}",
+                  "isSecret": true
+                },
+                "DEVOPS_IOTEDGE_REGISTRY_URL": {
+                  "value": "{{{inputs.containerRegistryName}}}.azurecr.io"
+                }
+              },
+              "templateFile": "Files/ReleaseDefinitionTemplates/deployIoTEdge.json",
+              "phaseInputs": [{
+                "queue": "hostedlinux",
+                "taskInputs": [
+                  {
+                    "__TaskId__": "94a74903-f93f-4075-884f-dc11f34058b4",
+                    "ConnectedServiceName": "{{{assets.ARMEndpoint}}}",
+                    "ResourceGroupName": "{{{inputs.resourceGroup}}}",
+                    "location": "{{{inputs.iotHubLocation}}}",
+                    "csmFileLink": "https://raw.githubusercontent.com/michaeljqzq/devops-iot-sample/953095fa13eb622cd6d2a11e71004d27a10a83e8/arm-iothub.json",
+                    "overrideParameters": "-iotHubName {{{inputs.iotHubName}}} -iotHubSku \"{{{inputs.iotHubSku}}}\""
+                  },
+                  {
+                    "__TaskId__": "46e4be58-730b-4389-8a2f-ea10b3e5e815",
+                    "connectedServiceNameARM": "{{{assets.ARMEndpoint}}}",
+                    "inlineScript": "(az extension add --name azure-cli-iot-ext && az iot hub device-identity show --device-id myEdgeDevice --hub-name {{{inputs.iotHubName}}}) || (az iot hub device-identity create --hub-name {{{inputs.iotHubName}}} --device-id myEdgeDevice --edge-enabled && TMP_OUTPUT=\"$(az iot hub device-identity show-connection-string --device-id myEdgeDevice --hub-name {{{inputs.iotHubName}}})\" && RE=\"\\\"cs\\\":\\s?\\\"(.*)\\\"\" && if [[ $TMP_OUTPUT =~ $RE ]]; then CS_OUTPUT=${BASH_REMATCH[1]}; fi && echo \"##vso[task.setvariable variable=CS_OUTPUT]${CS_OUTPUT}\")"
+                  },
+                  {
+                    "__TaskId__": "80f3f6a0-82a6-4a22-ba7a-e5b8c541b9b8",
+                    "connectedServiceNameARM": "{{{assets.ARMEndpoint}}}",
+                    "iothubname": "{{inputs.iotHubName}}"
+                  },
+                  {
+                    "__TaskId__": "94a74903-f93f-4075-884f-dc11f34058b4",
+                    "ConnectedServiceName": "{{{assets.ARMEndpoint}}}",
+                    "ResourceGroupName": "{{{inputs.resourceGroup}}}",
+                    "location": "{{{inputs.vmlocation}}}",
+                    "csmFileLink": "https://raw.githubusercontent.com/michaeljqzq/devops-iot-sample/2a37a3bf2b640275fb6b2e74bd78f2013c1a5db6/arm-linux-vm.json",
+                    "overrideParameters": "-edgeDeviceConnectionString $(CS_OUTPUT) -virtualMachineName \"{{{inputs.vmName}}}\" -adminUsername \"{{{inputs.vmUsername}}}\" -adminPassword \"$(vmPassword)\" -appInsightsLocation \"{{{inputs.appInsightLocation}}}\" -virtualMachineSize \"{{{inputs.vmSize}}}\" -location \"{{{inputs.vmlocation}}}\" "
+                  }
+                ]
+              }]
+            }]
+          }
+        }
+      }
+    },
+    {
+      "id": "node-newdevice",
+      "type": "ms.vss-continuous-delivery.pipeline-template-type",
+      "targets": [
+        "ms.vss-continuous-delivery.pipeline-templates"
+      ],
+      "properties": {
+        "description": "i18n:Template for configuring CI/CD pipeline for Azure IoT Edge App using Node.js",
+        "attributes": {
+          "hideKey": "IoTEdgePipelineTemplates",
+          "codeRepositoryType": "Sample",
+          "runtimeId": "ms.vss-continuous-delivery-pipeline-templates.runtime-type-nodejs",
+          "frameworkId": "ms.vss-continuous-delivery-pipeline-templates.framework-type-iot-edge",
+          "serviceId": "ms.vss-continuous-delivery-pipeline-templates.service-type-linux-vm-edge-device"
+        },
+        "parameters": {
+          "imports": [
+            "Files/Parameters/ArmEndpointParameters.json",
+            "Files/Parameters/ContainerRegistryParameters.json",
+            "Files/Parameters/IoTHubParameters.json",
+            "Files/Parameters/VMParameters.json"
+          ]
+        },
+        "configuration": {
+          "assets": [
+            {
+              "id": "ARMEndpoint",
+              "type": "endpoint:AzureRM",
+              "inputs": {
+                "subscriptionId": "{{inputs.subscriptionId}}",
+                "authorization": "{{inputs.azureAuth}}"
+              }
+            }
+          ],
+          "source": {
+            "repository": {
+              "id": "https://github.com/VSChina/azure-iot-edge-sample-node",
+              "defaultBranch": "master"
+            }
+          },
+          "buildDefinition": {
+            "queue": "hostedlinux",
+            "templateFile": "Files/BuildDefinitionTemplates/buildIoTEdge.json",
+            "variables": {
+              "DEVOPS_IOTEDGE_REGISTRY_URL": {
+                "value": "{{{inputs.containerRegistryName}}}.azurecr.io"
+              }
+            },
+            "phaseInputs": [{
+              "taskInputs": [
+                {
+                  "__TaskId__": "94a74903-f93f-4075-884f-dc11f34058b4",
+                  "ConnectedServiceName": "{{{assets.ARMEndpoint}}}",
+                  "resourceGroupName": "{{{inputs.resourceGroup}}}",
+                  "location": "{{{inputs.containerRegistryLocation}}}",
+                  "csmFileLink": "https://raw.githubusercontent.com/michaeljqzq/devops-iot-sample/7805ddfa886712eeb29fb3102de35f334a2ed95c/arm-acr.json",
+                  "overrideParameters": "-registryName {{{inputs.containerRegistryName}}} -registrySku \"{{{inputs.containerRegistrySKU}}}\" -registryLocation \"{{{inputs.containerRegistryLocation}}}\""
+                },
+                {
+                  "__TaskId__": "80f3f6a0-82a6-4a22-ba7a-e5b8c541b9b8",
+                  "azureSubscriptionEndpoint": "{{{assets.ARMEndpoint}}}",
+                  "azureContainerRegistry": "{\"loginServer\":\"{{{inputs.containerRegistryName}}}.azurecr.io\", \"id\" : \"/subscriptions/{{{inputs.subscriptionId}}}/resourceGroups/{{{inputs.resourceGroup}}}/providers/Microsoft.ContainerRegistry/registries/{{{inputs.containerRegistryName}}}\"}"
+                },
+                {
+                  "__TaskId__": "2ff763a7-ce83-4e1f-bc89-0ae63477cebe"
+                }
+              ]
+            }]
+          },
+          "releaseDefinition": {
+            "environments": [{
+              "name": "dev",
+              "deployedResourceIds": [
+                "/subscriptions/{{inputs.subscriptionId}}/resourceGroups/{{inputs.resourceGroup}}/providers/Microsoft.Compute/virtualMachines/{{inputs.vmName}}",
+                "/subscriptions/{{{inputs.subscriptionId}}}/resourceGroups/{{{inputs.resourceGroup}}}/providers/Microsoft.Devices/IotHubs/{{{inputs.iotHubName}}}"
+              ],
+              "variables": {
+                "vmPassword": {
+                  "value": "{{{inputs.vmPassword}}}",
+                  "isSecret": true
+                },
+                "DEVOPS_IOTEDGE_REGISTRY_URL": {
+                  "value": "{{{inputs.containerRegistryName}}}.azurecr.io"
+                }
+              },
+              "templateFile": "Files/ReleaseDefinitionTemplates/deployIoTEdge.json",
+              "phaseInputs": [{
+                "queue": "hostedlinux",
+                "taskInputs": [
+                  {
+                    "__TaskId__": "94a74903-f93f-4075-884f-dc11f34058b4",
+                    "ConnectedServiceName": "{{{assets.ARMEndpoint}}}",
+                    "ResourceGroupName": "{{{inputs.resourceGroup}}}",
+                    "location": "{{{inputs.iotHubLocation}}}",
+                    "csmFileLink": "https://raw.githubusercontent.com/michaeljqzq/devops-iot-sample/953095fa13eb622cd6d2a11e71004d27a10a83e8/arm-iothub.json",
+                    "overrideParameters": "-iotHubName {{{inputs.iotHubName}}} -iotHubSku \"{{{inputs.iotHubSku}}}\""
+                  },
+                  {
+                    "__TaskId__": "46e4be58-730b-4389-8a2f-ea10b3e5e815",
+                    "connectedServiceNameARM": "{{{assets.ARMEndpoint}}}",
+                    "inlineScript": "(az extension add --name azure-cli-iot-ext && az iot hub device-identity show --device-id myEdgeDevice --hub-name {{{inputs.iotHubName}}}) || (az iot hub device-identity create --hub-name {{{inputs.iotHubName}}} --device-id myEdgeDevice --edge-enabled && TMP_OUTPUT=\"$(az iot hub device-identity show-connection-string --device-id myEdgeDevice --hub-name {{{inputs.iotHubName}}})\" && RE=\"\\\"cs\\\":\\s?\\\"(.*)\\\"\" && if [[ $TMP_OUTPUT =~ $RE ]]; then CS_OUTPUT=${BASH_REMATCH[1]}; fi && echo \"##vso[task.setvariable variable=CS_OUTPUT]${CS_OUTPUT}\")"
+                  },
+                  {
+                    "__TaskId__": "80f3f6a0-82a6-4a22-ba7a-e5b8c541b9b8",
+                    "connectedServiceNameARM": "{{{assets.ARMEndpoint}}}",
+                    "iothubname": "{{inputs.iotHubName}}"
+                  },
+                  {
+                    "__TaskId__": "94a74903-f93f-4075-884f-dc11f34058b4",
+                    "ConnectedServiceName": "{{{assets.ARMEndpoint}}}",
+                    "ResourceGroupName": "{{{inputs.resourceGroup}}}",
+                    "location": "{{{inputs.vmlocation}}}",
+                    "csmFileLink": "https://raw.githubusercontent.com/michaeljqzq/devops-iot-sample/2a37a3bf2b640275fb6b2e74bd78f2013c1a5db6/arm-linux-vm.json",
+                    "overrideParameters": "-edgeDeviceConnectionString $(CS_OUTPUT) -virtualMachineName \"{{{inputs.vmName}}}\" -adminUsername \"{{{inputs.vmUsername}}}\" -adminPassword \"$(vmPassword)\" -appInsightsLocation \"{{{inputs.appInsightLocation}}}\" -virtualMachineSize \"{{{inputs.vmSize}}}\" -location \"{{{inputs.vmlocation}}}\" "
+                  }
+                ]
+              }]
+            }]
+          }
+        }
+      }
+    },
+    {
+      "id": "java-newdevice",
+      "type": "ms.vss-continuous-delivery.pipeline-template-type",
+      "targets": [
+        "ms.vss-continuous-delivery.pipeline-templates"
+      ],
+      "properties": {
+        "description": "i18n:Template for configuring CI/CD pipeline for Azure IoT Edge App using Java",
+        "attributes": {
+          "hideKey": "IoTEdgePipelineTemplates",
+          "codeRepositoryType": "Sample",
+          "runtimeId": "ms.vss-continuous-delivery-pipeline-templates.runtime-type-java",
+          "frameworkId": "ms.vss-continuous-delivery-pipeline-templates.framework-type-iot-edge",
+          "serviceId": "ms.vss-continuous-delivery-pipeline-templates.service-type-linux-vm-edge-device"
+        },
+        "parameters": {
+          "imports": [
+            "Files/Parameters/ArmEndpointParameters.json",
+            "Files/Parameters/ContainerRegistryParameters.json",
+            "Files/Parameters/IoTHubParameters.json",
+            "Files/Parameters/VMParameters.json"
+          ]
+        },
+        "configuration": {
+          "assets": [
+            {
+              "id": "ARMEndpoint",
+              "type": "endpoint:AzureRM",
+              "inputs": {
+                "subscriptionId": "{{inputs.subscriptionId}}",
+                "authorization": "{{inputs.azureAuth}}"
+              }
+            }
+          ],
+          "source": {
+            "repository": {
+              "id": "https://github.com/VSChina/azure-iot-edge-sample-java",
+              "defaultBranch": "master"
+            }
+          },
+          "buildDefinition": {
+            "queue": "hostedlinux",
+            "templateFile": "Files/BuildDefinitionTemplates/buildIoTEdge.json",
+            "variables": {
+              "DEVOPS_IOTEDGE_REGISTRY_URL": {
+                "value": "{{{inputs.containerRegistryName}}}.azurecr.io"
+              }
+            },
+            "phaseInputs": [{
+              "taskInputs": [
+                {
+                  "__TaskId__": "94a74903-f93f-4075-884f-dc11f34058b4",
+                  "ConnectedServiceName": "{{{assets.ARMEndpoint}}}",
+                  "resourceGroupName": "{{{inputs.resourceGroup}}}",
+                  "location": "{{{inputs.containerRegistryLocation}}}",
+                  "csmFileLink": "https://raw.githubusercontent.com/michaeljqzq/devops-iot-sample/7805ddfa886712eeb29fb3102de35f334a2ed95c/arm-acr.json",
+                  "overrideParameters": "-registryName {{{inputs.containerRegistryName}}} -registrySku \"{{{inputs.containerRegistrySKU}}}\" -registryLocation \"{{{inputs.containerRegistryLocation}}}\""
+                },
+                {
+                  "__TaskId__": "80f3f6a0-82a6-4a22-ba7a-e5b8c541b9b8",
+                  "azureSubscriptionEndpoint": "{{{assets.ARMEndpoint}}}",
+                  "azureContainerRegistry": "{\"loginServer\":\"{{{inputs.containerRegistryName}}}.azurecr.io\", \"id\" : \"/subscriptions/{{{inputs.subscriptionId}}}/resourceGroups/{{{inputs.resourceGroup}}}/providers/Microsoft.ContainerRegistry/registries/{{{inputs.containerRegistryName}}}\"}"
+                },
+                {
+                  "__TaskId__": "2ff763a7-ce83-4e1f-bc89-0ae63477cebe"
+                }
+              ]
+            }]
+          },
+          "releaseDefinition": {
+            "environments": [{
+              "name": "dev",
+              "deployedResourceIds": [
+                "/subscriptions/{{inputs.subscriptionId}}/resourceGroups/{{inputs.resourceGroup}}/providers/Microsoft.Compute/virtualMachines/{{inputs.vmName}}",
+                "/subscriptions/{{{inputs.subscriptionId}}}/resourceGroups/{{{inputs.resourceGroup}}}/providers/Microsoft.Devices/IotHubs/{{{inputs.iotHubName}}}"
+              ],
+              "variables": {
+                "vmPassword": {
+                  "value": "{{{inputs.vmPassword}}}",
+                  "isSecret": true
+                },
+                "DEVOPS_IOTEDGE_REGISTRY_URL": {
+                  "value": "{{{inputs.containerRegistryName}}}.azurecr.io"
+                }
+              },
+              "templateFile": "Files/ReleaseDefinitionTemplates/deployIoTEdge.json",
+              "phaseInputs": [{
+                "queue": "hostedlinux",
+                "taskInputs": [
+                  {
+                    "__TaskId__": "94a74903-f93f-4075-884f-dc11f34058b4",
+                    "ConnectedServiceName": "{{{assets.ARMEndpoint}}}",
+                    "ResourceGroupName": "{{{inputs.resourceGroup}}}",
+                    "location": "{{{inputs.iotHubLocation}}}",
+                    "csmFileLink": "https://raw.githubusercontent.com/michaeljqzq/devops-iot-sample/953095fa13eb622cd6d2a11e71004d27a10a83e8/arm-iothub.json",
+                    "overrideParameters": "-iotHubName {{{inputs.iotHubName}}} -iotHubSku \"{{{inputs.iotHubSku}}}\""
+                  },
+                  {
+                    "__TaskId__": "46e4be58-730b-4389-8a2f-ea10b3e5e815",
+                    "connectedServiceNameARM": "{{{assets.ARMEndpoint}}}",
+                    "inlineScript": "(az extension add --name azure-cli-iot-ext && az iot hub device-identity show --device-id myEdgeDevice --hub-name {{{inputs.iotHubName}}}) || (az iot hub device-identity create --hub-name {{{inputs.iotHubName}}} --device-id myEdgeDevice --edge-enabled && TMP_OUTPUT=\"$(az iot hub device-identity show-connection-string --device-id myEdgeDevice --hub-name {{{inputs.iotHubName}}})\" && RE=\"\\\"cs\\\":\\s?\\\"(.*)\\\"\" && if [[ $TMP_OUTPUT =~ $RE ]]; then CS_OUTPUT=${BASH_REMATCH[1]}; fi && echo \"##vso[task.setvariable variable=CS_OUTPUT]${CS_OUTPUT}\")"
+                  },
+                  {
+                    "__TaskId__": "80f3f6a0-82a6-4a22-ba7a-e5b8c541b9b8",
+                    "connectedServiceNameARM": "{{{assets.ARMEndpoint}}}",
+                    "iothubname": "{{inputs.iotHubName}}"
+                  },
+                  {
+                    "__TaskId__": "94a74903-f93f-4075-884f-dc11f34058b4",
+                    "ConnectedServiceName": "{{{assets.ARMEndpoint}}}",
+                    "ResourceGroupName": "{{{inputs.resourceGroup}}}",
+                    "location": "{{{inputs.vmlocation}}}",
+                    "csmFileLink": "https://raw.githubusercontent.com/michaeljqzq/devops-iot-sample/2a37a3bf2b640275fb6b2e74bd78f2013c1a5db6/arm-linux-vm.json",
+                    "overrideParameters": "-edgeDeviceConnectionString $(CS_OUTPUT) -virtualMachineName \"{{{inputs.vmName}}}\" -adminUsername \"{{{inputs.vmUsername}}}\" -adminPassword \"$(vmPassword)\" -appInsightsLocation \"{{{inputs.appInsightLocation}}}\" -virtualMachineSize \"{{{inputs.vmSize}}}\" -location \"{{{inputs.vmlocation}}}\" "
+                  }
+                ]
+              }]
+            }]
+          }
+        }
+      }
+    },
+    {
+      "id": "c-newdevice",
+      "type": "ms.vss-continuous-delivery.pipeline-template-type",
+      "targets": [
+        "ms.vss-continuous-delivery.pipeline-templates"
+      ],
+      "properties": {
+        "description": "i18n:Template for configuring CI/CD pipeline for Azure IoT Edge App using C",
+        "attributes": {
+          "hideKey": "IoTEdgePipelineTemplates",
+          "codeRepositoryType": "Sample",
+          "runtimeId": "ms.vss-continuous-delivery-pipeline-templates.runtime-type-edge-c",
+          "frameworkId": "ms.vss-continuous-delivery-pipeline-templates.framework-type-iot-edge",
+          "serviceId": "ms.vss-continuous-delivery-pipeline-templates.service-type-linux-vm-edge-device"
+        },
+        "parameters": {
+          "imports": [
+            "Files/Parameters/ArmEndpointParameters.json",
+            "Files/Parameters/ContainerRegistryParameters.json",
+            "Files/Parameters/IoTHubParameters.json",
+            "Files/Parameters/VMParameters.json"
+          ]
+        },
+        "configuration": {
+          "assets": [
+            {
+              "id": "ARMEndpoint",
+              "type": "endpoint:AzureRM",
+              "inputs": {
+                "subscriptionId": "{{inputs.subscriptionId}}",
+                "authorization": "{{inputs.azureAuth}}"
+              }
+            }
+          ],
+          "source": {
+            "repository": {
+              "id": "https://github.com/VSChina/azure-iot-edge-sample-c",
+              "defaultBranch": "master"
+            }
+          },
+          "buildDefinition": {
+            "queue": "hostedlinux",
+            "templateFile": "Files/BuildDefinitionTemplates/buildIoTEdge.json",
+            "variables": {
+              "DEVOPS_IOTEDGE_REGISTRY_URL": {
+                "value": "{{{inputs.containerRegistryName}}}.azurecr.io"
+              }
+            },
+            "phaseInputs": [{
+              "taskInputs": [
+                {
+                  "__TaskId__": "94a74903-f93f-4075-884f-dc11f34058b4",
+                  "ConnectedServiceName": "{{{assets.ARMEndpoint}}}",
+                  "resourceGroupName": "{{{inputs.resourceGroup}}}",
+                  "location": "{{{inputs.containerRegistryLocation}}}",
+                  "csmFileLink": "https://raw.githubusercontent.com/michaeljqzq/devops-iot-sample/7805ddfa886712eeb29fb3102de35f334a2ed95c/arm-acr.json",
+                  "overrideParameters": "-registryName {{{inputs.containerRegistryName}}} -registrySku \"{{{inputs.containerRegistrySKU}}}\" -registryLocation \"{{{inputs.containerRegistryLocation}}}\""
+                },
+                {
+                  "__TaskId__": "80f3f6a0-82a6-4a22-ba7a-e5b8c541b9b8",
+                  "azureSubscriptionEndpoint": "{{{assets.ARMEndpoint}}}",
+                  "azureContainerRegistry": "{\"loginServer\":\"{{{inputs.containerRegistryName}}}.azurecr.io\", \"id\" : \"/subscriptions/{{{inputs.subscriptionId}}}/resourceGroups/{{{inputs.resourceGroup}}}/providers/Microsoft.ContainerRegistry/registries/{{{inputs.containerRegistryName}}}\"}"
+                },
+                {
+                  "__TaskId__": "2ff763a7-ce83-4e1f-bc89-0ae63477cebe"
+                }
+              ]
+            }]
+          },
+          "releaseDefinition": {
+            "environments": [{
+              "name": "dev",
+              "deployedResourceIds": [
+                "/subscriptions/{{inputs.subscriptionId}}/resourceGroups/{{inputs.resourceGroup}}/providers/Microsoft.Compute/virtualMachines/{{inputs.vmName}}",
+                "/subscriptions/{{{inputs.subscriptionId}}}/resourceGroups/{{{inputs.resourceGroup}}}/providers/Microsoft.Devices/IotHubs/{{{inputs.iotHubName}}}"
+              ],
+              "variables": {
+                "vmPassword": {
+                  "value": "{{{inputs.vmPassword}}}",
+                  "isSecret": true
+                },
+                "DEVOPS_IOTEDGE_REGISTRY_URL": {
+                  "value": "{{{inputs.containerRegistryName}}}.azurecr.io"
+                }
+              },
+              "templateFile": "Files/ReleaseDefinitionTemplates/deployIoTEdge.json",
+              "phaseInputs": [{
+                "queue": "hostedlinux",
+                "taskInputs": [
+                  {
+                    "__TaskId__": "94a74903-f93f-4075-884f-dc11f34058b4",
+                    "ConnectedServiceName": "{{{assets.ARMEndpoint}}}",
+                    "ResourceGroupName": "{{{inputs.resourceGroup}}}",
+                    "location": "{{{inputs.iotHubLocation}}}",
+                    "csmFileLink": "https://raw.githubusercontent.com/michaeljqzq/devops-iot-sample/953095fa13eb622cd6d2a11e71004d27a10a83e8/arm-iothub.json",
+                    "overrideParameters": "-iotHubName {{{inputs.iotHubName}}} -iotHubSku \"{{{inputs.iotHubSku}}}\""
+                  },
+                  {
+                    "__TaskId__": "46e4be58-730b-4389-8a2f-ea10b3e5e815",
+                    "connectedServiceNameARM": "{{{assets.ARMEndpoint}}}",
+                    "inlineScript": "(az extension add --name azure-cli-iot-ext && az iot hub device-identity show --device-id myEdgeDevice --hub-name {{{inputs.iotHubName}}}) || (az iot hub device-identity create --hub-name {{{inputs.iotHubName}}} --device-id myEdgeDevice --edge-enabled && TMP_OUTPUT=\"$(az iot hub device-identity show-connection-string --device-id myEdgeDevice --hub-name {{{inputs.iotHubName}}})\" && RE=\"\\\"cs\\\":\\s?\\\"(.*)\\\"\" && if [[ $TMP_OUTPUT =~ $RE ]]; then CS_OUTPUT=${BASH_REMATCH[1]}; fi && echo \"##vso[task.setvariable variable=CS_OUTPUT]${CS_OUTPUT}\")"
+                  },
+                  {
+                    "__TaskId__": "80f3f6a0-82a6-4a22-ba7a-e5b8c541b9b8",
+                    "connectedServiceNameARM": "{{{assets.ARMEndpoint}}}",
+                    "iothubname": "{{inputs.iotHubName}}"
+                  },
+                  {
+                    "__TaskId__": "94a74903-f93f-4075-884f-dc11f34058b4",
+                    "ConnectedServiceName": "{{{assets.ARMEndpoint}}}",
+                    "ResourceGroupName": "{{{inputs.resourceGroup}}}",
+                    "location": "{{{inputs.vmlocation}}}",
+                    "csmFileLink": "https://raw.githubusercontent.com/michaeljqzq/devops-iot-sample/2a37a3bf2b640275fb6b2e74bd78f2013c1a5db6/arm-linux-vm.json",
+                    "overrideParameters": "-edgeDeviceConnectionString $(CS_OUTPUT) -virtualMachineName \"{{{inputs.vmName}}}\" -adminUsername \"{{{inputs.vmUsername}}}\" -adminPassword \"$(vmPassword)\" -appInsightsLocation \"{{{inputs.appInsightLocation}}}\" -virtualMachineSize \"{{{inputs.vmSize}}}\" -location \"{{{inputs.vmlocation}}}\" "
+                  }
+                ]
+              }]
+            }]
+          }
+        }
+      }
+    },
+    {
+      "id": "python-newdevice",
+      "type": "ms.vss-continuous-delivery.pipeline-template-type",
+      "targets": [
+        "ms.vss-continuous-delivery.pipeline-templates"
+      ],
+      "properties": {
+        "description": "i18n:Template for configuring CI/CD pipeline for Azure IoT Edge App using Python",
+        "attributes": {
+          "hideKey": "IoTEdgePipelineTemplates",
+          "codeRepositoryType": "Sample",
+          "runtimeId": "ms.vss-continuous-delivery-pipeline-templates.runtime-type-python",
+          "frameworkId": "ms.vss-continuous-delivery-pipeline-templates.framework-type-iot-edge",
+          "serviceId": "ms.vss-continuous-delivery-pipeline-templates.service-type-linux-vm-edge-device"
+        },
+        "parameters": {
+          "imports": [
+            "Files/Parameters/ArmEndpointParameters.json",
+            "Files/Parameters/ContainerRegistryParameters.json",
+            "Files/Parameters/IoTHubParameters.json",
+            "Files/Parameters/VMParameters.json"
+          ]
+        },
+        "configuration": {
+          "assets": [
+            {
+              "id": "ARMEndpoint",
+              "type": "endpoint:AzureRM",
+              "inputs": {
+                "subscriptionId": "{{inputs.subscriptionId}}",
+                "authorization": "{{inputs.azureAuth}}"
+              }
+            }
+          ],
+          "source": {
+            "repository": {
+              "id": "https://github.com/VSChina/azure-iot-edge-sample-python",
+              "defaultBranch": "master"
+            }
+          },
+          "buildDefinition": {
+            "queue": "hostedlinux",
+            "templateFile": "Files/BuildDefinitionTemplates/buildIoTEdge.json",
+            "variables": {
+              "DEVOPS_IOTEDGE_REGISTRY_URL": {
+                "value": "{{{inputs.containerRegistryName}}}.azurecr.io"
+              }
+            },
+            "phaseInputs": [{
+              "taskInputs": [
+                {
+                  "__TaskId__": "94a74903-f93f-4075-884f-dc11f34058b4",
+                  "ConnectedServiceName": "{{{assets.ARMEndpoint}}}",
+                  "resourceGroupName": "{{{inputs.resourceGroup}}}",
+                  "location": "{{{inputs.containerRegistryLocation}}}",
+                  "csmFileLink": "https://raw.githubusercontent.com/michaeljqzq/devops-iot-sample/7805ddfa886712eeb29fb3102de35f334a2ed95c/arm-acr.json",
+                  "overrideParameters": "-registryName {{{inputs.containerRegistryName}}} -registrySku \"{{{inputs.containerRegistrySKU}}}\" -registryLocation \"{{{inputs.containerRegistryLocation}}}\""
+                },
+                {
+                  "__TaskId__": "80f3f6a0-82a6-4a22-ba7a-e5b8c541b9b8",
+                  "azureSubscriptionEndpoint": "{{{assets.ARMEndpoint}}}",
+                  "azureContainerRegistry": "{\"loginServer\":\"{{{inputs.containerRegistryName}}}.azurecr.io\", \"id\" : \"/subscriptions/{{{inputs.subscriptionId}}}/resourceGroups/{{{inputs.resourceGroup}}}/providers/Microsoft.ContainerRegistry/registries/{{{inputs.containerRegistryName}}}\"}"
+                },
+                {
+                  "__TaskId__": "2ff763a7-ce83-4e1f-bc89-0ae63477cebe"
+                }
+              ]
+            }]
+          },
+          "releaseDefinition": {
+            "environments": [{
+              "name": "dev",
+              "deployedResourceIds": [
+                "/subscriptions/{{inputs.subscriptionId}}/resourceGroups/{{inputs.resourceGroup}}/providers/Microsoft.Compute/virtualMachines/{{inputs.vmName}}",
+                "/subscriptions/{{{inputs.subscriptionId}}}/resourceGroups/{{{inputs.resourceGroup}}}/providers/Microsoft.Devices/IotHubs/{{{inputs.iotHubName}}}"
+              ],
+              "variables": {
+                "vmPassword": {
+                  "value": "{{{inputs.vmPassword}}}",
+                  "isSecret": true
+                },
+                "DEVOPS_IOTEDGE_REGISTRY_URL": {
+                  "value": "{{{inputs.containerRegistryName}}}.azurecr.io"
+                }
+              },
+              "templateFile": "Files/ReleaseDefinitionTemplates/deployIoTEdge.json",
+              "phaseInputs": [{
+                "queue": "hostedlinux",
+                "taskInputs": [
+                  {
+                    "__TaskId__": "94a74903-f93f-4075-884f-dc11f34058b4",
+                    "ConnectedServiceName": "{{{assets.ARMEndpoint}}}",
+                    "ResourceGroupName": "{{{inputs.resourceGroup}}}",
+                    "location": "{{{inputs.iotHubLocation}}}",
+                    "csmFileLink": "https://raw.githubusercontent.com/michaeljqzq/devops-iot-sample/953095fa13eb622cd6d2a11e71004d27a10a83e8/arm-iothub.json",
+                    "overrideParameters": "-iotHubName {{{inputs.iotHubName}}} -iotHubSku \"{{{inputs.iotHubSku}}}\""
+                  },
+                  {
+                    "__TaskId__": "46e4be58-730b-4389-8a2f-ea10b3e5e815",
+                    "connectedServiceNameARM": "{{{assets.ARMEndpoint}}}",
+                    "inlineScript": "(az extension add --name azure-cli-iot-ext && az iot hub device-identity show --device-id myEdgeDevice --hub-name {{{inputs.iotHubName}}}) || (az iot hub device-identity create --hub-name {{{inputs.iotHubName}}} --device-id myEdgeDevice --edge-enabled && TMP_OUTPUT=\"$(az iot hub device-identity show-connection-string --device-id myEdgeDevice --hub-name {{{inputs.iotHubName}}})\" && RE=\"\\\"cs\\\":\\s?\\\"(.*)\\\"\" && if [[ $TMP_OUTPUT =~ $RE ]]; then CS_OUTPUT=${BASH_REMATCH[1]}; fi && echo \"##vso[task.setvariable variable=CS_OUTPUT]${CS_OUTPUT}\")"
+                  },
+                  {
+                    "__TaskId__": "80f3f6a0-82a6-4a22-ba7a-e5b8c541b9b8",
+                    "connectedServiceNameARM": "{{{assets.ARMEndpoint}}}",
+                    "iothubname": "{{inputs.iotHubName}}"
+                  },
+                  {
+                    "__TaskId__": "94a74903-f93f-4075-884f-dc11f34058b4",
+                    "ConnectedServiceName": "{{{assets.ARMEndpoint}}}",
+                    "ResourceGroupName": "{{{inputs.resourceGroup}}}",
+                    "location": "{{{inputs.vmlocation}}}",
+                    "csmFileLink": "https://raw.githubusercontent.com/michaeljqzq/devops-iot-sample/2a37a3bf2b640275fb6b2e74bd78f2013c1a5db6/arm-linux-vm.json",
+                    "overrideParameters": "-edgeDeviceConnectionString $(CS_OUTPUT) -virtualMachineName \"{{{inputs.vmName}}}\" -adminUsername \"{{{inputs.vmUsername}}}\" -adminPassword \"$(vmPassword)\" -appInsightsLocation \"{{{inputs.appInsightLocation}}}\" -virtualMachineSize \"{{{inputs.vmSize}}}\" -location \"{{{inputs.vmlocation}}}\" "
+                  }
+                ]
+              }]
+            }]
+          }
+        }
+      }
+    },
+    {
+      "id": "dotnet-existingdevice",
+      "type": "ms.vss-continuous-delivery.pipeline-template-type",
+      "targets": [
+        "ms.vss-continuous-delivery.pipeline-templates"
+      ],
+      "properties": {
+        "description": "i18n:Template for configuring CI/CD pipeline for Azure IoT Edge App using .NET Core",
+        "attributes": {
+          "hideKey": "IoTEdgePipelineTemplates",
+          "codeRepositoryType": "Sample",
+          "runtimeId": "ms.vss-continuous-delivery-pipeline-templates.runtime-type-dotnet",
+          "frameworkId": "ms.vss-continuous-delivery-pipeline-templates.framework-type-iot-edge",
+          "serviceId": "ms.vss-continuous-delivery-pipeline-templates.service-type-existing-edge-device"
+        },
+        "parameters": {
+          "imports": [
+            "Files/Parameters/ArmEndpointParameters.json",
+            "Files/Parameters/ContainerRegistryParameters.json",
+            "Files/Parameters/IoTHubParameters.json"
+          ]
+        },
+        "configuration": {
+          "assets": [
+            {
+              "id": "ARMEndpoint",
+              "type": "endpoint:AzureRM",
+              "inputs": {
+                "subscriptionId": "{{inputs.subscriptionId}}",
+                "authorization": "{{inputs.azureAuth}}"
+              }
+            }
+          ],
+          "source": {
+            "repository": {
+              "id": "https://github.com/VSChina/azure-iot-edge-sample-dotnet",
+              "defaultBranch": "master"
+            }
+          },
+          "buildDefinition": {
+            "queue": "hostedlinux",
+            "templateFile": "Files/BuildDefinitionTemplates/buildIoTEdge.json",
+            "variables": {
+              "DEVOPS_IOTEDGE_REGISTRY_URL": {
+                "value": "{{{inputs.containerRegistryName}}}.azurecr.io"
+              }
+            },
+            "phaseInputs": [{
+              "taskInputs": [
+                {
+                  "__TaskId__": "94a74903-f93f-4075-884f-dc11f34058b4",
+                  "ConnectedServiceName": "{{{assets.ARMEndpoint}}}",
+                  "resourceGroupName": "{{{inputs.resourceGroup}}}",
+                  "location": "{{{inputs.containerRegistryLocation}}}",
+                  "csmFileLink": "https://raw.githubusercontent.com/michaeljqzq/devops-iot-sample/7805ddfa886712eeb29fb3102de35f334a2ed95c/arm-acr.json",
+                  "overrideParameters": "-registryName {{{inputs.containerRegistryName}}} -registrySku \"{{{inputs.containerRegistrySKU}}}\" -registryLocation \"{{{inputs.containerRegistryLocation}}}\""
+                },
+                {
+                  "__TaskId__": "80f3f6a0-82a6-4a22-ba7a-e5b8c541b9b8",
+                  "azureSubscriptionEndpoint": "{{{assets.ARMEndpoint}}}",
+                  "azureContainerRegistry": "{\"loginServer\":\"{{{inputs.containerRegistryName}}}.azurecr.io\", \"id\" : \"/subscriptions/{{{inputs.subscriptionId}}}/resourceGroups/{{{inputs.resourceGroup}}}/providers/Microsoft.ContainerRegistry/registries/{{{inputs.containerRegistryName}}}\"}"
+                },
+                {
+                  "__TaskId__": "2ff763a7-ce83-4e1f-bc89-0ae63477cebe"
+                }
+              ]
+            }]
+          },
+          "releaseDefinition": {
+            "environments": [{
+              "name": "dev",
+              "deployedResourceIds": [
+                "/subscriptions/{{{inputs.subscriptionId}}}/resourceGroups/{{{inputs.resourceGroup}}}/providers/Microsoft.Devices/IotHubs/{{{inputs.iotHubName}}}"
+              ],
+              "variables": {
+                "DEVOPS_IOTEDGE_REGISTRY_URL": {
+                  "value": "{{{inputs.containerRegistryName}}}.azurecr.io"
+                }
+              },
+              "templateFile": "Files/ReleaseDefinitionTemplates/deployIoTEdgeWithoutVM.json",
+              "phaseInputs": [{
+                "queue": "hostedlinux",
+                "taskInputs": [
+                  {
+                    "__TaskId__": "94a74903-f93f-4075-884f-dc11f34058b4",
+                    "ConnectedServiceName": "{{{assets.ARMEndpoint}}}",
+                    "ResourceGroupName": "{{{inputs.resourceGroup}}}",
+                    "location": "{{{inputs.iotHubLocation}}}",
+                    "csmFileLink": "https://raw.githubusercontent.com/michaeljqzq/devops-iot-sample/953095fa13eb622cd6d2a11e71004d27a10a83e8/arm-iothub.json",
+                    "overrideParameters": "-iotHubName {{{inputs.iotHubName}}} -iotHubSku \"{{{inputs.iotHubSku}}}\""
+                  },
+                  {
+                    "__TaskId__": "46e4be58-730b-4389-8a2f-ea10b3e5e815",
+                    "connectedServiceNameARM": "{{{assets.ARMEndpoint}}}",
+                    "inlineScript": "(az extension add --name azure-cli-iot-ext && az iot hub device-identity show --device-id myEdgeDevice --hub-name {{{inputs.iotHubName}}}) || (az iot hub device-identity create --hub-name {{{inputs.iotHubName}}} --device-id myEdgeDevice --edge-enabled && TMP_OUTPUT=\"$(az iot hub device-identity show-connection-string --device-id myEdgeDevice --hub-name {{{inputs.iotHubName}}})\" && RE=\"\\\"cs\\\":\\s?\\\"(.*)\\\"\" && if [[ $TMP_OUTPUT =~ $RE ]]; then CS_OUTPUT=${BASH_REMATCH[1]}; fi && echo \"##vso[task.setvariable variable=CS_OUTPUT]${CS_OUTPUT}\")"
+                  },
+                  {
+                    "__TaskId__": "80f3f6a0-82a6-4a22-ba7a-e5b8c541b9b8",
+                    "connectedServiceNameARM": "{{{assets.ARMEndpoint}}}",
+                    "iothubname": "{{inputs.iotHubName}}"
+                  }
+                ]
+              }]
+            }]
+          }
+        }
+      }
+    }, {
+      "id": "node-existingdevice",
+      "type": "ms.vss-continuous-delivery.pipeline-template-type",
+      "targets": [
+        "ms.vss-continuous-delivery.pipeline-templates"
+      ],
+      "properties": {
+        "description": "i18n:Template for configuring CI/CD pipeline for Azure IoT Edge App using Node.js",
+        "attributes": {
+          "hideKey": "IoTEdgePipelineTemplates",
+          "codeRepositoryType": "Sample",
+          "runtimeId": "ms.vss-continuous-delivery-pipeline-templates.runtime-type-nodejs",
+          "frameworkId": "ms.vss-continuous-delivery-pipeline-templates.framework-type-iot-edge",
+          "serviceId": "ms.vss-continuous-delivery-pipeline-templates.service-type-existing-edge-device"
+        },
+        "parameters": {
+          "imports": [
+            "Files/Parameters/ArmEndpointParameters.json",
+            "Files/Parameters/ContainerRegistryParameters.json",
+            "Files/Parameters/IoTHubParameters.json"
+          ]
+        },
+        "configuration": {
+          "assets": [
+            {
+              "id": "ARMEndpoint",
+              "type": "endpoint:AzureRM",
+              "inputs": {
+                "subscriptionId": "{{inputs.subscriptionId}}",
+                "authorization": "{{inputs.azureAuth}}"
+              }
+            }
+          ],
+          "source": {
+            "repository": {
+              "id": "https://github.com/VSChina/azure-iot-edge-sample-node",
+              "defaultBranch": "master"
+            }
+          },
+          "buildDefinition": {
+            "queue": "hostedlinux",
+            "templateFile": "Files/BuildDefinitionTemplates/buildIoTEdge.json",
+            "variables": {
+              "DEVOPS_IOTEDGE_REGISTRY_URL": {
+                "value": "{{{inputs.containerRegistryName}}}.azurecr.io"
+              }
+            },
+            "phaseInputs": [{
+              "taskInputs": [
+                {
+                  "__TaskId__": "94a74903-f93f-4075-884f-dc11f34058b4",
+                  "ConnectedServiceName": "{{{assets.ARMEndpoint}}}",
+                  "resourceGroupName": "{{{inputs.resourceGroup}}}",
+                  "location": "{{{inputs.containerRegistryLocation}}}",
+                  "csmFileLink": "https://raw.githubusercontent.com/michaeljqzq/devops-iot-sample/7805ddfa886712eeb29fb3102de35f334a2ed95c/arm-acr.json",
+                  "overrideParameters": "-registryName {{{inputs.containerRegistryName}}} -registrySku \"{{{inputs.containerRegistrySKU}}}\" -registryLocation \"{{{inputs.containerRegistryLocation}}}\""
+                },
+                {
+                  "__TaskId__": "80f3f6a0-82a6-4a22-ba7a-e5b8c541b9b8",
+                  "azureSubscriptionEndpoint": "{{{assets.ARMEndpoint}}}",
+                  "azureContainerRegistry": "{\"loginServer\":\"{{{inputs.containerRegistryName}}}.azurecr.io\", \"id\" : \"/subscriptions/{{{inputs.subscriptionId}}}/resourceGroups/{{{inputs.resourceGroup}}}/providers/Microsoft.ContainerRegistry/registries/{{{inputs.containerRegistryName}}}\"}"
+                },
+                {
+                  "__TaskId__": "2ff763a7-ce83-4e1f-bc89-0ae63477cebe"
+                }
+              ]
+            }]
+          },
+          "releaseDefinition": {
+            "environments": [{
+              "name": "dev",
+              "deployedResourceIds": [
+                "/subscriptions/{{{inputs.subscriptionId}}}/resourceGroups/{{{inputs.resourceGroup}}}/providers/Microsoft.Devices/IotHubs/{{{inputs.iotHubName}}}"
+              ],
+              "variables": {
+                "DEVOPS_IOTEDGE_REGISTRY_URL": {
+                  "value": "{{{inputs.containerRegistryName}}}.azurecr.io"
+                }
+              },
+              "templateFile": "Files/ReleaseDefinitionTemplates/deployIoTEdgeWithoutVM.json",
+              "phaseInputs": [{
+                "queue": "hostedlinux",
+                "taskInputs": [
+                  {
+                    "__TaskId__": "94a74903-f93f-4075-884f-dc11f34058b4",
+                    "ConnectedServiceName": "{{{assets.ARMEndpoint}}}",
+                    "ResourceGroupName": "{{{inputs.resourceGroup}}}",
+                    "location": "{{{inputs.iotHubLocation}}}",
+                    "csmFileLink": "https://raw.githubusercontent.com/michaeljqzq/devops-iot-sample/953095fa13eb622cd6d2a11e71004d27a10a83e8/arm-iothub.json",
+                    "overrideParameters": "-iotHubName {{{inputs.iotHubName}}} -iotHubSku \"{{{inputs.iotHubSku}}}\""
+                  },
+                  {
+                    "__TaskId__": "46e4be58-730b-4389-8a2f-ea10b3e5e815",
+                    "connectedServiceNameARM": "{{{assets.ARMEndpoint}}}",
+                    "inlineScript": "(az extension add --name azure-cli-iot-ext && az iot hub device-identity show --device-id myEdgeDevice --hub-name {{{inputs.iotHubName}}}) || (az iot hub device-identity create --hub-name {{{inputs.iotHubName}}} --device-id myEdgeDevice --edge-enabled && TMP_OUTPUT=\"$(az iot hub device-identity show-connection-string --device-id myEdgeDevice --hub-name {{{inputs.iotHubName}}})\" && RE=\"\\\"cs\\\":\\s?\\\"(.*)\\\"\" && if [[ $TMP_OUTPUT =~ $RE ]]; then CS_OUTPUT=${BASH_REMATCH[1]}; fi && echo \"##vso[task.setvariable variable=CS_OUTPUT]${CS_OUTPUT}\")"
+                  },
+                  {
+                    "__TaskId__": "80f3f6a0-82a6-4a22-ba7a-e5b8c541b9b8",
+                    "connectedServiceNameARM": "{{{assets.ARMEndpoint}}}",
+                    "iothubname": "{{inputs.iotHubName}}"
+                  }
+                ]
+              }]
+            }]
+          }
+        }
+      }
+    }, {
+      "id": "java-existingdevice",
+      "type": "ms.vss-continuous-delivery.pipeline-template-type",
+      "targets": [
+        "ms.vss-continuous-delivery.pipeline-templates"
+      ],
+      "properties": {
+        "description": "i18n:Template for configuring CI/CD pipeline for Azure IoT Edge App using Java",
+        "attributes": {
+          "hideKey": "IoTEdgePipelineTemplates",
+          "codeRepositoryType": "Sample",
+          "runtimeId": "ms.vss-continuous-delivery-pipeline-templates.runtime-type-java",
+          "frameworkId": "ms.vss-continuous-delivery-pipeline-templates.framework-type-iot-edge",
+          "serviceId": "ms.vss-continuous-delivery-pipeline-templates.service-type-existing-edge-device"
+        },
+        "parameters": {
+          "imports": [
+            "Files/Parameters/ArmEndpointParameters.json",
+            "Files/Parameters/ContainerRegistryParameters.json",
+            "Files/Parameters/IoTHubParameters.json"
+          ]
+        },
+        "configuration": {
+          "assets": [
+            {
+              "id": "ARMEndpoint",
+              "type": "endpoint:AzureRM",
+              "inputs": {
+                "subscriptionId": "{{inputs.subscriptionId}}",
+                "authorization": "{{inputs.azureAuth}}"
+              }
+            }
+          ],
+          "source": {
+            "repository": {
+              "id": "https://github.com/VSChina/azure-iot-edge-sample-java",
+              "defaultBranch": "master"
+            }
+          },
+          "buildDefinition": {
+            "queue": "hostedlinux",
+            "templateFile": "Files/BuildDefinitionTemplates/buildIoTEdge.json",
+            "variables": {
+              "DEVOPS_IOTEDGE_REGISTRY_URL": {
+                "value": "{{{inputs.containerRegistryName}}}.azurecr.io"
+              }
+            },
+            "phaseInputs": [{
+              "taskInputs": [
+                {
+                  "__TaskId__": "94a74903-f93f-4075-884f-dc11f34058b4",
+                  "ConnectedServiceName": "{{{assets.ARMEndpoint}}}",
+                  "resourceGroupName": "{{{inputs.resourceGroup}}}",
+                  "location": "{{{inputs.containerRegistryLocation}}}",
+                  "csmFileLink": "https://raw.githubusercontent.com/michaeljqzq/devops-iot-sample/7805ddfa886712eeb29fb3102de35f334a2ed95c/arm-acr.json",
+                  "overrideParameters": "-registryName {{{inputs.containerRegistryName}}} -registrySku \"{{{inputs.containerRegistrySKU}}}\" -registryLocation \"{{{inputs.containerRegistryLocation}}}\""
+                },
+                {
+                  "__TaskId__": "80f3f6a0-82a6-4a22-ba7a-e5b8c541b9b8",
+                  "azureSubscriptionEndpoint": "{{{assets.ARMEndpoint}}}",
+                  "azureContainerRegistry": "{\"loginServer\":\"{{{inputs.containerRegistryName}}}.azurecr.io\", \"id\" : \"/subscriptions/{{{inputs.subscriptionId}}}/resourceGroups/{{{inputs.resourceGroup}}}/providers/Microsoft.ContainerRegistry/registries/{{{inputs.containerRegistryName}}}\"}"
+                },
+                {
+                  "__TaskId__": "2ff763a7-ce83-4e1f-bc89-0ae63477cebe"
+                }
+              ]
+            }]
+          },
+          "releaseDefinition": {
+            "environments": [{
+              "name": "dev",
+              "deployedResourceIds": [
+                "/subscriptions/{{{inputs.subscriptionId}}}/resourceGroups/{{{inputs.resourceGroup}}}/providers/Microsoft.Devices/IotHubs/{{{inputs.iotHubName}}}"
+              ],
+              "variables": {
+                "DEVOPS_IOTEDGE_REGISTRY_URL": {
+                  "value": "{{{inputs.containerRegistryName}}}.azurecr.io"
+                }
+              },
+              "templateFile": "Files/ReleaseDefinitionTemplates/deployIoTEdgeWithoutVM.json",
+              "phaseInputs": [{
+                "queue": "hostedlinux",
+                "taskInputs": [
+                  {
+                    "__TaskId__": "94a74903-f93f-4075-884f-dc11f34058b4",
+                    "ConnectedServiceName": "{{{assets.ARMEndpoint}}}",
+                    "ResourceGroupName": "{{{inputs.resourceGroup}}}",
+                    "location": "{{{inputs.iotHubLocation}}}",
+                    "csmFileLink": "https://raw.githubusercontent.com/michaeljqzq/devops-iot-sample/953095fa13eb622cd6d2a11e71004d27a10a83e8/arm-iothub.json",
+                    "overrideParameters": "-iotHubName {{{inputs.iotHubName}}} -iotHubSku \"{{{inputs.iotHubSku}}}\""
+                  },
+                  {
+                    "__TaskId__": "46e4be58-730b-4389-8a2f-ea10b3e5e815",
+                    "connectedServiceNameARM": "{{{assets.ARMEndpoint}}}",
+                    "inlineScript": "(az extension add --name azure-cli-iot-ext && az iot hub device-identity show --device-id myEdgeDevice --hub-name {{{inputs.iotHubName}}}) || (az iot hub device-identity create --hub-name {{{inputs.iotHubName}}} --device-id myEdgeDevice --edge-enabled && TMP_OUTPUT=\"$(az iot hub device-identity show-connection-string --device-id myEdgeDevice --hub-name {{{inputs.iotHubName}}})\" && RE=\"\\\"cs\\\":\\s?\\\"(.*)\\\"\" && if [[ $TMP_OUTPUT =~ $RE ]]; then CS_OUTPUT=${BASH_REMATCH[1]}; fi && echo \"##vso[task.setvariable variable=CS_OUTPUT]${CS_OUTPUT}\")"
+                  },
+                  {
+                    "__TaskId__": "80f3f6a0-82a6-4a22-ba7a-e5b8c541b9b8",
+                    "connectedServiceNameARM": "{{{assets.ARMEndpoint}}}",
+                    "iothubname": "{{inputs.iotHubName}}"
+                  }
+                ]
+              }]
+            }]
+          }
+        }
+      }
+    }, {
+      "id": "c-existingdevice",
+      "type": "ms.vss-continuous-delivery.pipeline-template-type",
+      "targets": [
+        "ms.vss-continuous-delivery.pipeline-templates"
+      ],
+      "properties": {
+        "description": "i18n:Template for configuring CI/CD pipeline for Azure IoT Edge App using C",
+        "attributes": {
+          "hideKey": "IoTEdgePipelineTemplates",
+          "codeRepositoryType": "Sample",
+          "runtimeId": "ms.vss-continuous-delivery-pipeline-templates.runtime-type-edge-c",
+          "frameworkId": "ms.vss-continuous-delivery-pipeline-templates.framework-type-iot-edge",
+          "serviceId": "ms.vss-continuous-delivery-pipeline-templates.service-type-existing-edge-device"
+        },
+        "parameters": {
+          "imports": [
+            "Files/Parameters/ArmEndpointParameters.json",
+            "Files/Parameters/ContainerRegistryParameters.json",
+            "Files/Parameters/IoTHubParameters.json"
+          ]
+        },
+        "configuration": {
+          "assets": [
+            {
+              "id": "ARMEndpoint",
+              "type": "endpoint:AzureRM",
+              "inputs": {
+                "subscriptionId": "{{inputs.subscriptionId}}",
+                "authorization": "{{inputs.azureAuth}}"
+              }
+            }
+          ],
+          "source": {
+            "repository": {
+              "id": "https://github.com/VSChina/azure-iot-edge-sample-c",
+              "defaultBranch": "master"
+            }
+          },
+          "buildDefinition": {
+            "queue": "hostedlinux",
+            "templateFile": "Files/BuildDefinitionTemplates/buildIoTEdge.json",
+            "variables": {
+              "DEVOPS_IOTEDGE_REGISTRY_URL": {
+                "value": "{{{inputs.containerRegistryName}}}.azurecr.io"
+              }
+            },
+            "phaseInputs": [{
+              "taskInputs": [
+                {
+                  "__TaskId__": "94a74903-f93f-4075-884f-dc11f34058b4",
+                  "ConnectedServiceName": "{{{assets.ARMEndpoint}}}",
+                  "resourceGroupName": "{{{inputs.resourceGroup}}}",
+                  "location": "{{{inputs.containerRegistryLocation}}}",
+                  "csmFileLink": "https://raw.githubusercontent.com/michaeljqzq/devops-iot-sample/7805ddfa886712eeb29fb3102de35f334a2ed95c/arm-acr.json",
+                  "overrideParameters": "-registryName {{{inputs.containerRegistryName}}} -registrySku \"{{{inputs.containerRegistrySKU}}}\" -registryLocation \"{{{inputs.containerRegistryLocation}}}\""
+                },
+                {
+                  "__TaskId__": "80f3f6a0-82a6-4a22-ba7a-e5b8c541b9b8",
+                  "azureSubscriptionEndpoint": "{{{assets.ARMEndpoint}}}",
+                  "azureContainerRegistry": "{\"loginServer\":\"{{{inputs.containerRegistryName}}}.azurecr.io\", \"id\" : \"/subscriptions/{{{inputs.subscriptionId}}}/resourceGroups/{{{inputs.resourceGroup}}}/providers/Microsoft.ContainerRegistry/registries/{{{inputs.containerRegistryName}}}\"}"
+                },
+                {
+                  "__TaskId__": "2ff763a7-ce83-4e1f-bc89-0ae63477cebe"
+                }
+              ]
+            }]
+          },
+          "releaseDefinition": {
+            "environments": [{
+              "name": "dev",
+              "deployedResourceIds": [
+                "/subscriptions/{{{inputs.subscriptionId}}}/resourceGroups/{{{inputs.resourceGroup}}}/providers/Microsoft.Devices/IotHubs/{{{inputs.iotHubName}}}"
+              ],
+              "variables": {
+                "DEVOPS_IOTEDGE_REGISTRY_URL": {
+                  "value": "{{{inputs.containerRegistryName}}}.azurecr.io"
+                }
+              },
+              "templateFile": "Files/ReleaseDefinitionTemplates/deployIoTEdgeWithoutVM.json",
+              "phaseInputs": [{
+                "queue": "hostedlinux",
+                "taskInputs": [
+                  {
+                    "__TaskId__": "94a74903-f93f-4075-884f-dc11f34058b4",
+                    "ConnectedServiceName": "{{{assets.ARMEndpoint}}}",
+                    "ResourceGroupName": "{{{inputs.resourceGroup}}}",
+                    "location": "{{{inputs.iotHubLocation}}}",
+                    "csmFileLink": "https://raw.githubusercontent.com/michaeljqzq/devops-iot-sample/953095fa13eb622cd6d2a11e71004d27a10a83e8/arm-iothub.json",
+                    "overrideParameters": "-iotHubName {{{inputs.iotHubName}}} -iotHubSku \"{{{inputs.iotHubSku}}}\""
+                  },
+                  {
+                    "__TaskId__": "46e4be58-730b-4389-8a2f-ea10b3e5e815",
+                    "connectedServiceNameARM": "{{{assets.ARMEndpoint}}}",
+                    "inlineScript": "(az extension add --name azure-cli-iot-ext && az iot hub device-identity show --device-id myEdgeDevice --hub-name {{{inputs.iotHubName}}}) || (az iot hub device-identity create --hub-name {{{inputs.iotHubName}}} --device-id myEdgeDevice --edge-enabled && TMP_OUTPUT=\"$(az iot hub device-identity show-connection-string --device-id myEdgeDevice --hub-name {{{inputs.iotHubName}}})\" && RE=\"\\\"cs\\\":\\s?\\\"(.*)\\\"\" && if [[ $TMP_OUTPUT =~ $RE ]]; then CS_OUTPUT=${BASH_REMATCH[1]}; fi && echo \"##vso[task.setvariable variable=CS_OUTPUT]${CS_OUTPUT}\")"
+                  },
+                  {
+                    "__TaskId__": "80f3f6a0-82a6-4a22-ba7a-e5b8c541b9b8",
+                    "connectedServiceNameARM": "{{{assets.ARMEndpoint}}}",
+                    "iothubname": "{{inputs.iotHubName}}"
+                  }
+                ]
+              }]
+            }]
+          }
+        }
+      }
+    }, {
+      "id": "python-existingdevice",
+      "type": "ms.vss-continuous-delivery.pipeline-template-type",
+      "targets": [
+        "ms.vss-continuous-delivery.pipeline-templates"
+      ],
+      "properties": {
+        "description": "i18n:Template for configuring CI/CD pipeline for Azure IoT Edge App using Python",
+        "attributes": {
+          "hideKey": "IoTEdgePipelineTemplates",
+          "codeRepositoryType": "Sample",
+          "runtimeId": "ms.vss-continuous-delivery-pipeline-templates.runtime-type-python",
+          "frameworkId": "ms.vss-continuous-delivery-pipeline-templates.framework-type-iot-edge",
+          "serviceId": "ms.vss-continuous-delivery-pipeline-templates.service-type-existing-edge-device"
+        },
+        "parameters": {
+          "imports": [
+            "Files/Parameters/ArmEndpointParameters.json",
+            "Files/Parameters/ContainerRegistryParameters.json",
+            "Files/Parameters/IoTHubParameters.json",
+            "Files/Parameters/VMParameters.json"
+          ]
+        },
+        "configuration": {
+          "assets": [
+            {
+              "id": "ARMEndpoint",
+              "type": "endpoint:AzureRM",
+              "inputs": {
+                "subscriptionId": "{{inputs.subscriptionId}}",
+                "authorization": "{{inputs.azureAuth}}"
+              }
+            }
+          ],
+          "source": {
+            "repository": {
+              "id": "https://github.com/VSChina/azure-iot-edge-sample-python",
+              "defaultBranch": "master"
+            }
+          },
+          "buildDefinition": {
+            "queue": "hostedlinux",
+            "templateFile": "Files/BuildDefinitionTemplates/buildIoTEdge.json",
+            "variables": {
+              "DEVOPS_IOTEDGE_REGISTRY_URL": {
+                "value": "{{{inputs.containerRegistryName}}}.azurecr.io"
+              }
+            },
+            "phaseInputs": [{
+              "taskInputs": [
+                {
+                  "__TaskId__": "94a74903-f93f-4075-884f-dc11f34058b4",
+                  "ConnectedServiceName": "{{{assets.ARMEndpoint}}}",
+                  "resourceGroupName": "{{{inputs.resourceGroup}}}",
+                  "location": "{{{inputs.containerRegistryLocation}}}",
+                  "csmFileLink": "https://raw.githubusercontent.com/michaeljqzq/devops-iot-sample/7805ddfa886712eeb29fb3102de35f334a2ed95c/arm-acr.json",
+                  "overrideParameters": "-registryName {{{inputs.containerRegistryName}}} -registrySku \"{{{inputs.containerRegistrySKU}}}\" -registryLocation \"{{{inputs.containerRegistryLocation}}}\""
+                },
+                {
+                  "__TaskId__": "80f3f6a0-82a6-4a22-ba7a-e5b8c541b9b8",
+                  "azureSubscriptionEndpoint": "{{{assets.ARMEndpoint}}}",
+                  "azureContainerRegistry": "{\"loginServer\":\"{{{inputs.containerRegistryName}}}.azurecr.io\", \"id\" : \"/subscriptions/{{{inputs.subscriptionId}}}/resourceGroups/{{{inputs.resourceGroup}}}/providers/Microsoft.ContainerRegistry/registries/{{{inputs.containerRegistryName}}}\"}"
+                },
+                {
+                  "__TaskId__": "2ff763a7-ce83-4e1f-bc89-0ae63477cebe"
+                }
+              ]
+            }]
+          },
+          "releaseDefinition": {
+            "environments": [{
+              "name": "dev",
+              "deployedResourceIds": [
+                "/subscriptions/{{{inputs.subscriptionId}}}/resourceGroups/{{{inputs.resourceGroup}}}/providers/Microsoft.Devices/IotHubs/{{{inputs.iotHubName}}}"
+              ],
+              "variables": {
+                "DEVOPS_IOTEDGE_REGISTRY_URL": {
+                  "value": "{{{inputs.containerRegistryName}}}.azurecr.io"
+                }
+              },
+              "templateFile": "Files/ReleaseDefinitionTemplates/deployIoTEdgeWithoutVM.json",
+              "phaseInputs": [{
+                "queue": "hostedlinux",
+                "taskInputs": [
+                  {
+                    "__TaskId__": "94a74903-f93f-4075-884f-dc11f34058b4",
+                    "ConnectedServiceName": "{{{assets.ARMEndpoint}}}",
+                    "ResourceGroupName": "{{{inputs.resourceGroup}}}",
+                    "location": "{{{inputs.iotHubLocation}}}",
+                    "csmFileLink": "https://raw.githubusercontent.com/michaeljqzq/devops-iot-sample/953095fa13eb622cd6d2a11e71004d27a10a83e8/arm-iothub.json",
+                    "overrideParameters": "-iotHubName {{{inputs.iotHubName}}} -iotHubSku \"{{{inputs.iotHubSku}}}\""
+                  },
+                  {
+                    "__TaskId__": "46e4be58-730b-4389-8a2f-ea10b3e5e815",
+                    "connectedServiceNameARM": "{{{assets.ARMEndpoint}}}",
+                    "inlineScript": "(az extension add --name azure-cli-iot-ext && az iot hub device-identity show --device-id myEdgeDevice --hub-name {{{inputs.iotHubName}}}) || (az iot hub device-identity create --hub-name {{{inputs.iotHubName}}} --device-id myEdgeDevice --edge-enabled && TMP_OUTPUT=\"$(az iot hub device-identity show-connection-string --device-id myEdgeDevice --hub-name {{{inputs.iotHubName}}})\" && RE=\"\\\"cs\\\":\\s?\\\"(.*)\\\"\" && if [[ $TMP_OUTPUT =~ $RE ]]; then CS_OUTPUT=${BASH_REMATCH[1]}; fi && echo \"##vso[task.setvariable variable=CS_OUTPUT]${CS_OUTPUT}\")"
+                  },
+                  {
+                    "__TaskId__": "80f3f6a0-82a6-4a22-ba7a-e5b8c541b9b8",
+                    "connectedServiceNameARM": "{{{assets.ARMEndpoint}}}",
+                    "iothubname": "{{inputs.iotHubName}}"
+                  }
+                ]
+              }]
+            }]
+          }
+        }
+      }
+    }
+  ]
+}
