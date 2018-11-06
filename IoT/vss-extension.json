@@ -106,7 +106,7 @@
               ],
               "variables": {
                 "vmPassword": {
-                  "value": "{{{system.projectName}}}abcDEF123^$*",
+                  "value": "{{#tinyguid}}{{/tinyguid}}",
                   "isSecret": true
                 },
                 "DEVOPS_IOTEDGE_REGISTRY_URL": {
@@ -227,7 +227,7 @@
               ],
               "variables": {
                 "vmPassword": {
-                  "value": "{{{system.projectName}}}abcDEF123^$*",
+                  "value": "{{#tinyguid}}{{/tinyguid}}",
                   "isSecret": true
                 },
                 "DEVOPS_IOTEDGE_REGISTRY_URL": {
@@ -348,7 +348,7 @@
               ],
               "variables": {
                 "vmPassword": {
-                  "value": "{{{system.projectName}}}abcDEF123^$*",
+                  "value": "{{#tinyguid}}{{/tinyguid}}",
                   "isSecret": true
                 },
                 "DEVOPS_IOTEDGE_REGISTRY_URL": {
@@ -469,7 +469,7 @@
               ],
               "variables": {
                 "vmPassword": {
-                  "value": "{{{system.projectName}}}abcDEF123^$*",
+                  "value": "{{#tinyguid}}{{/tinyguid}}",
                   "isSecret": true
                 },
                 "DEVOPS_IOTEDGE_REGISTRY_URL": {
@@ -590,7 +590,7 @@
               ],
               "variables": {
                 "vmPassword": {
-                  "value": "{{{system.projectName}}}abcDEF123^$*",
+                  "value": "{{#tinyguid}}{{/tinyguid}}",
                   "isSecret": true
                 },
                 "DEVOPS_IOTEDGE_REGISTRY_URL": {
