@@ -139,9 +139,9 @@
                     "__TaskId__": "94a74903-f93f-4075-884f-dc11f34058b4",
                     "ConnectedServiceName": "{{{assets.ARMEndpoint}}}",
                     "ResourceGroupName": "{{{inputs.resourceGroup}}}",
-                    "location": "South Central US",
+                    "location": "{{{inputs.iotHubLocation}}}",
                     "csmFileLink": "https://raw.githubusercontent.com/Azure-Samples/devops-iot-scripts/12d60bd513ead7c94aa1669e505083beaef8a480/arm-linux-vm.json",
-                    "overrideParameters": "-edgeDeviceConnectionString $(CS_OUTPUT) -virtualMachineName \"{{{inputs.iotHubName}}}-edge-simulation\" -adminUsername \"devops\" -adminPassword \"$(vmPassword)\" -appInsightsLocation \"{{{inputs.appInsightLocation}}}\" -virtualMachineSize \"Standard_A0\" -location \"South Central US\" "
+                    "overrideParameters": "-edgeDeviceConnectionString $(CS_OUTPUT) -virtualMachineName \"{{{inputs.iotHubName}}}-edge-simulation\" -adminUsername \"devops\" -adminPassword \"$(vmPassword)\" -appInsightsLocation \"{{{inputs.appInsightLocation}}}\" -virtualMachineSize \"Standard_A0\" -location \"{{{inputs.iotHubLocation}}}\" "
                   }
                 ]
               }]
@@ -260,9 +260,9 @@
                     "__TaskId__": "94a74903-f93f-4075-884f-dc11f34058b4",
                     "ConnectedServiceName": "{{{assets.ARMEndpoint}}}",
                     "ResourceGroupName": "{{{inputs.resourceGroup}}}",
-                    "location": "South Central US",
+                    "location": "{{{inputs.iotHubLocation}}}",
                     "csmFileLink": "https://raw.githubusercontent.com/Azure-Samples/devops-iot-scripts/12d60bd513ead7c94aa1669e505083beaef8a480/arm-linux-vm.json",
-                    "overrideParameters": "-edgeDeviceConnectionString $(CS_OUTPUT) -virtualMachineName \"{{{inputs.iotHubName}}}-edge-simulation\" -adminUsername \"devops\" -adminPassword \"$(vmPassword)\" -appInsightsLocation \"{{{inputs.appInsightLocation}}}\" -virtualMachineSize \"Standard_A0\" -location \"South Central US\" "
+                    "overrideParameters": "-edgeDeviceConnectionString $(CS_OUTPUT) -virtualMachineName \"{{{inputs.iotHubName}}}-edge-simulation\" -adminUsername \"devops\" -adminPassword \"$(vmPassword)\" -appInsightsLocation \"{{{inputs.appInsightLocation}}}\" -virtualMachineSize \"Standard_A0\" -location \"{{{inputs.iotHubLocation}}}\" "
                   }
                 ]
               }]
@@ -381,9 +381,9 @@
                     "__TaskId__": "94a74903-f93f-4075-884f-dc11f34058b4",
                     "ConnectedServiceName": "{{{assets.ARMEndpoint}}}",
                     "ResourceGroupName": "{{{inputs.resourceGroup}}}",
-                    "location": "South Central US",
+                    "location": "{{{inputs.iotHubLocation}}}",
                     "csmFileLink": "https://raw.githubusercontent.com/Azure-Samples/devops-iot-scripts/12d60bd513ead7c94aa1669e505083beaef8a480/arm-linux-vm.json",
-                    "overrideParameters": "-edgeDeviceConnectionString $(CS_OUTPUT) -virtualMachineName \"{{{inputs.iotHubName}}}-edge-simulation\" -adminUsername \"devops\" -adminPassword \"$(vmPassword)\" -appInsightsLocation \"{{{inputs.appInsightLocation}}}\" -virtualMachineSize \"Standard_A0\" -location \"South Central US\" "
+                    "overrideParameters": "-edgeDeviceConnectionString $(CS_OUTPUT) -virtualMachineName \"{{{inputs.iotHubName}}}-edge-simulation\" -adminUsername \"devops\" -adminPassword \"$(vmPassword)\" -appInsightsLocation \"{{{inputs.appInsightLocation}}}\" -virtualMachineSize \"Standard_A0\" -location \"{{{inputs.iotHubLocation}}}\" "
                   }
                 ]
               }]
@@ -502,9 +502,9 @@
                     "__TaskId__": "94a74903-f93f-4075-884f-dc11f34058b4",
                     "ConnectedServiceName": "{{{assets.ARMEndpoint}}}",
                     "ResourceGroupName": "{{{inputs.resourceGroup}}}",
-                    "location": "South Central US",
+                    "location": "{{{inputs.iotHubLocation}}}",
                     "csmFileLink": "https://raw.githubusercontent.com/Azure-Samples/devops-iot-scripts/12d60bd513ead7c94aa1669e505083beaef8a480/arm-linux-vm.json",
-                    "overrideParameters": "-edgeDeviceConnectionString $(CS_OUTPUT) -virtualMachineName \"{{{inputs.iotHubName}}}-edge-simulation\" -adminUsername \"devops\" -adminPassword \"$(vmPassword)\" -appInsightsLocation \"{{{inputs.appInsightLocation}}}\" -virtualMachineSize \"Standard_A0\" -location \"South Central US\" "
+                    "overrideParameters": "-edgeDeviceConnectionString $(CS_OUTPUT) -virtualMachineName \"{{{inputs.iotHubName}}}-edge-simulation\" -adminUsername \"devops\" -adminPassword \"$(vmPassword)\" -appInsightsLocation \"{{{inputs.appInsightLocation}}}\" -virtualMachineSize \"Standard_A0\" -location \"{{{inputs.iotHubLocation}}}\" "
                   }
                 ]
               }]
@@ -623,9 +623,9 @@
                     "__TaskId__": "94a74903-f93f-4075-884f-dc11f34058b4",
                     "ConnectedServiceName": "{{{assets.ARMEndpoint}}}",
                     "ResourceGroupName": "{{{inputs.resourceGroup}}}",
-                    "location": "South Central US",
+                    "location": "{{{inputs.iotHubLocation}}}",
                     "csmFileLink": "https://raw.githubusercontent.com/Azure-Samples/devops-iot-scripts/12d60bd513ead7c94aa1669e505083beaef8a480/arm-linux-vm.json",
-                    "overrideParameters": "-edgeDeviceConnectionString $(CS_OUTPUT) -virtualMachineName \"{{{inputs.iotHubName}}}-edge-simulation\" -adminUsername \"devops\" -adminPassword \"$(vmPassword)\" -appInsightsLocation \"{{{inputs.appInsightLocation}}}\" -virtualMachineSize \"Standard_A0\" -location \"South Central US\" "
+                    "overrideParameters": "-edgeDeviceConnectionString $(CS_OUTPUT) -virtualMachineName \"{{{inputs.iotHubName}}}-edge-simulation\" -adminUsername \"devops\" -adminPassword \"$(vmPassword)\" -appInsightsLocation \"{{{inputs.appInsightLocation}}}\" -virtualMachineSize \"Standard_A0\" -location \"{{{inputs.iotHubLocation}}}\" "
                   }
                 ]
               }]
