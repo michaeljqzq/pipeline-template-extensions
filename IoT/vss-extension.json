@@ -109,7 +109,7 @@
               ],
               "variables": {
                 "vmPassword": {
-                  "value": "{{#tinyguid}}{{/tinyguid}}",
+                  "value": "{{{#generateRandomPassword}}}{{{/generateRandomPassword}}}",
                   "isSecret": true
                 },
                 "DEVOPS_IOTEDGE_REGISTRY_URL": {
@@ -233,7 +233,7 @@
               ],
               "variables": {
                 "vmPassword": {
-                  "value": "{{#tinyguid}}{{/tinyguid}}",
+                  "value": "{{{#generateRandomPassword}}}{{{/generateRandomPassword}}}",
                   "isSecret": true
                 },
                 "DEVOPS_IOTEDGE_REGISTRY_URL": {
@@ -357,7 +357,7 @@
               ],
               "variables": {
                 "vmPassword": {
-                  "value": "{{#tinyguid}}{{/tinyguid}}",
+                  "value": "{{{#generateRandomPassword}}}{{{/generateRandomPassword}}}",
                   "isSecret": true
                 },
                 "DEVOPS_IOTEDGE_REGISTRY_URL": {
@@ -481,7 +481,7 @@
               ],
               "variables": {
                 "vmPassword": {
-                  "value": "{{#tinyguid}}{{/tinyguid}}",
+                  "value": "{{{#generateRandomPassword}}}{{{/generateRandomPassword}}}",
                   "isSecret": true
                 },
                 "DEVOPS_IOTEDGE_REGISTRY_URL": {
@@ -605,7 +605,7 @@
               ],
               "variables": {
                 "vmPassword": {
-                  "value": "{{#tinyguid}}{{/tinyguid}}",
+                  "value": "{{{#generateRandomPassword}}}{{{/generateRandomPassword}}}",
                   "isSecret": true
                 },
                 "DEVOPS_IOTEDGE_REGISTRY_URL": {
